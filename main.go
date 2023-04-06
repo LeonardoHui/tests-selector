@@ -5,10 +5,22 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"os"
 	"tests-selector/openai"
+
+	"github.com/joho/godotenv"
 )
 
+var Envs = GetEnvs()
+
+func GetEnvs() map[string]string {
+	envFile := os.Args[1]
+	envs, _ := godotenv.Read(envFile)
+	return envs
+}
+
 func main() {
+	prDescription := os.Args[2]
 
 	// Load test cases from file.
 	testCases := loadTestCasesFromFile("test_cases.txt")
@@ -20,7 +32,7 @@ func main() {
 		resp, err := openai.Embeddings(openai.EmbeddingsRequest{
 			Model: "text-embedding-ada-002",
 			Input: testCase,
-		})
+		}, fmt.Sprintf("Bearer %s", Envs["TOKEN"]))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -36,26 +48,38 @@ func main() {
 	}
 
 	// Compute cosine similarity between the PR description and each test case.
-	prDescription := "Fix bug in login flow"
 	prDescriptionEmbedding, err := generateEmbedding(prDescription)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	testCaseSimilarity := make([]float32, len(testCases))
+	mostSimilar := 0
 	for i, testCase := range testCases {
-		for j, t := range testCase {
+		for j, _ := range testCase {
 			cosineSim := cosineSimilarity(prDescriptionEmbedding, testCaseEmbeddings[i][j])
-			fmt.Printf("Test case %d: %s, cosine similarity: %f\n", i+1, t, cosineSim)
+			testCaseSimilarity[i] = cosineSim
+			if testCaseSimilarity[i] > testCaseSimilarity[mostSimilar] {
+				mostSimilar = i
+			}
+			// fmt.Printf("Test case %d: %s, cosine similarity: %f\n", i+1, t, cosineSim)
 		}
 	}
+
+	testsCasesIndex := []string{"account", "login", "logout", "pos-sale", "customer"}
+
+	fmt.Println(testsCasesIndex[mostSimilar])
 }
 
 // Load test cases from a file.
 func loadTestCasesFromFile(filename string) [][]string {
 	// TODO: Implement file loading.
 	return [][]string{
-		{"Testing login flow"},
 		{"Testing purchase flow"},
+		{"User log in for the first time"},
+		{"Logout redirect to home page"},
+		{"Creating a comment"},
+		{"Reviewing the product"},
 	}
 }
 
@@ -64,7 +88,7 @@ func generateEmbedding(prompt string) ([]float32, error) {
 	resp, err := openai.Embeddings(openai.EmbeddingsRequest{
 		Model: "text-embedding-ada-002", //text-embedding-ada-002
 		Input: []string{prompt},
-	})
+	}, fmt.Sprintf("Bearer %s", Envs["TOKEN"]))
 	if err != nil {
 		return nil, err
 	}

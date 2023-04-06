@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 )
 
@@ -42,29 +42,29 @@ type EmbeddingsErrorResponse struct {
 	} `json:"error"`
 }
 
-func Embeddings(req EmbeddingsRequest) (resp EmbeddingsResponse, err error) {
+func Embeddings(req EmbeddingsRequest, token string) (resp EmbeddingsResponse, err error) {
 
 	reqBytes, _ := json.Marshal(req)
 
 	r, err := http.NewRequest("POST", "https://api.openai.com/v1/embeddings", bytes.NewBuffer(reqBytes))
 	r.Header.Add("Content-Type", "application/json")
-	r.Header.Add("Authorization", "Bearer YOUR-TOKEN")
+	r.Header.Add("Authorization", token)
 
 	client := &http.Client{}
 	res, err := client.Do(r)
 	if err != nil {
-		fmt.Println("Error:", err)
+		log.Println("Error:", err)
 		return
 	}
 	defer res.Body.Close()
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		fmt.Println("Error:", err)
+		log.Println("Error:", err)
 		return
 	}
 
 	if res.StatusCode != http.StatusOK {
-		fmt.Println("Error:", string(body))
+		log.Println("Error:", string(body))
 		err = errors.New("Request returned != 200")
 		return
 	}
