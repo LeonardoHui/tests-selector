@@ -24,7 +24,7 @@ type EmbeddingsResponse struct {
 
 type data struct {
 	Object    string    `json:"object"`
-	Embedding []float32 `json:"embedding"`
+	Embedding []float64 `json:"embedding"`
 	Index     int       `json:"index"`
 }
 
